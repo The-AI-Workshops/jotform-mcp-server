@@ -2,8 +2,8 @@
 FROM python:3.11-slim
 
 # Set environment variables to prevent Python from writing pyc files
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 # Set the working directory in the container
 WORKDIR /app
@@ -21,7 +21,7 @@ COPY pyproject.toml uv.lock* ./
 # This leverages the lock file for reproducible installs
 # It creates a virtual environment within the image for isolation
 RUN uv venv /opt/venv && \
-    uv pip sync --python /opt/venv/bin/python --frozen uv.lock
+    uv pip sync --python /opt/venv/bin/python uv.lock
 
 # Activate the virtual environment for subsequent commands
 ENV PATH="/opt/venv/bin:$PATH"
