@@ -24,14 +24,20 @@ source venv/bin/activate  # On Windows use `venv\Scripts\activate`
 
 **3. Install Dependencies:**
 
-This project uses `uv` for dependency management. If you don't have `uv`, install it first (within or outside the venv):
-```bash
-pip install uv
-```
-Then, install dependencies using the lock file:
-```bash
-uv pip sync uv.lock
-```
+Choose **one** of the following methods:
+
+*   **Using `uv` (Recommended):**
+    *   If you don't have `uv`, install it: `pip install uv`
+    *   Install dependencies using the lock file for reproducibility:
+        ```bash
+        uv pip sync uv.lock
+        ```
+
+*   **Using `pip`:**
+    *   Install dependencies using the `requirements.txt` file:
+        ```bash
+        pip install -r requirements.txt
+        ```
 
 **4. Configure API Key:**
 
@@ -192,6 +198,34 @@ This allows the MCP client to manage the server process running inside a Docker 
   }
 }
 ```
+
+### Quick Run (npx-like)
+
+If you want to run the server quickly without a full local setup (similar to how `npx` works for Node.js packages), you can combine the steps. This is useful for temporary execution or testing.
+
+**Make sure you have Python 3.11+ and `git` installed.**
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/The-AI-Workshops/jotform-mcp-server.git
+cd jotform-mcp-server
+
+# 2. Create a temporary .env file with your API key
+echo "JOTFORM_API_KEY=YOUR_ACTUAL_JOTFORM_API_KEY" > .env
+# Optional: Add other ENV VARS like MCP_PORT=8067 if needed
+
+# 3. Install dependencies and run (choose one method):
+
+# Method A: Using pip (installs dependencies globally if not in a venv)
+pip install -r requirements.txt && python jotform_mcp_server.py
+
+# Method B: Using uv (installs uv then dependencies globally if not in a venv)
+# pip install uv && uv pip sync uv.lock && python jotform_mcp_server.py
+
+# 4. Stop the server with CTRL+C when done.
+# 5. Remove the directory if you don't need it anymore: cd .. && rm -rf jotform-mcp-server
+```
+**Note:** This method might install dependencies globally if you are not inside an activated virtual environment. Using a dedicated virtual environment (Steps 2 & 3 in the main setup) or Docker is recommended for better project isolation.
 
 ### Available Tools
 
