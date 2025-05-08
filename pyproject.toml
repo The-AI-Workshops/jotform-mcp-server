@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jotform-mcp-server"
+version = "0.1.0"
+description = "MCP Server for interacting with the Jotform API, generated from the original Python client."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" } # Assuming LICENSE file exists from original repo
+authors = [
+  { name = "Your Name / Org", email = "your@email.com" }, # TODO: Update author details
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: MIT License", # Adjust if LICENSE is different
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Communications",
+]
+dependencies = [
+    "python-dotenv>=1.0.0",
+    "fastmcp>=2.2.10",
+    "python-dateutil>=2.8.0", # For advanced date calculations
+    # Add any other direct dependencies if discovered later
+]
+
+[project.urls]
+Homepage = "https://github.com/The-AI-Workshops/jotform-mcp-server"
+Repository = "https://github.com/The-AI-Workshops/jotform-mcp-server"
+# Issues = "https://github.com/The-AI-Workshops/jotform-mcp-server/issues" # Optional
+
+# Optional: Configure tools like ruff, mypy, pytest here if needed
+# [tool.ruff]
+# ...

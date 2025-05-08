@@ -5,13 +5,17 @@
 #
 
 import asyncio
+import asyncio
 import json
 import os
 import logging
 from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Tuple
+from datetime import datetime, timedelta, date
+from dateutil.relativedelta import relativedelta
+import calendar
 
 from dotenv import load_dotenv
 from mcp.server.fastmcp import Context, FastMCP
@@ -94,6 +98,80 @@ async def _execute_jotform_request(client_method, *args, **kwargs) -> str:
     except Exception as e:
         logging.error(f"Error during Jotform API request for method {client_method.__name__ if hasattr(client_method, '__name__') else 'unknown_method'}: {e}", exc_info=True)
         return json.dumps({"error": f"Jotform API Error: {str(e)}"}, indent=2)
+
+# --- Helper Functions for Date Calculation ---
+
+def _calculate_date_range(period: Optional[str], start_date_str: Optional[str], end_date_str: Optional[str]) -> Tuple[Optional[str], Optional[str]]:
+    """Calculates start and end dates based on period or explicit dates."""
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    today = date.today()
+
+    if period:
+        period = period.lower()
+        acc_start_day = int(os.getenv("ACCOUNTING_MONTH_START_DAY", 1))
+        if acc_start_day < 1 or acc_start_day > 28: # Basic validation
+             acc_start_day = 1
+             logging.warning("ACCOUNTING_MONTH_START_DAY is invalid or > 28, defaulting to 1.")
+
+        if period == "last_7_days":
+            start_date = today - timedelta(days=7)
+            end_date = today
+        elif period == "last_30_days":
+            start_date = today - timedelta(days=30)
+            end_date = today
+        elif period == "current_month":
+            start_date = today.replace(day=1)
+            end_date = today
+        elif period == "last_month":
+            last_month_end = today.replace(day=1) - timedelta(days=1)
+            start_date = last_month_end.replace(day=1)
+            end_date = last_month_end
+        elif period == "current_accounting_month":
+            if today.day >= acc_start_day:
+                start_date = today.replace(day=acc_start_day)
+            else:
+                start_date = (today.replace(day=acc_start_day) - relativedelta(months=1))
+            end_date = today # Or should it be end of current accounting period? Let's use today for simplicity.
+            # More precise end: (start_date + relativedelta(months=1)) - timedelta(days=1)
+        elif period == "last_accounting_month":
+            if today.day >= acc_start_day:
+                this_acc_month_start = today.replace(day=acc_start_day)
+            else:
+                this_acc_month_start = (today.replace(day=acc_start_day) - relativedelta(months=1))
+            start_date = this_acc_month_start - relativedelta(months=1)
+            end_date = this_acc_month_start - timedelta(days=1)
+        else:
+            raise ValueError(f"Invalid period specified: {period}")
+
+    elif start_date_str or end_date_str:
+        try:
+            if start_date_str:
+                start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+            if end_date_str:
+                # Add one day to end_date for Jotform's 'lt' filter to include the end date
+                end_date_dt = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+                end_date = end_date_dt + timedelta(days=1) # Make it exclusive upper bound for Jotform
+        except ValueError:
+            raise ValueError("Invalid date format. Please use YYYY-MM-DD.")
+    else:
+        # No date filter provided
+        return None, None
+
+    # Format for Jotform API (YYYY-MM-DD HH:MM:SS) - use start/end of day
+    start_date_formatted = f"{start_date} 00:00:00" if start_date else None
+    # Jotform 'lt' is exclusive, so use the start of the day *after* the desired end date
+    # Or if using a period ending today, use tomorrow 00:00:00
+    if end_date_str and end_date: # If specific end date was given
+         end_date_formatted = f"{end_date} 00:00:00" # end_date already has +1 day
+    elif end_date: # If calculated from period
+         end_date_formatted = f"{end_date + timedelta(days=1)} 00:00:00"
+    else:
+         end_date_formatted = None
+
+
+    return start_date_formatted, end_date_formatted
+
 
 # --- User Related Tools ---
 @mcp.tool()
@@ -829,6 +907,143 @@ async def get_plan(ctx: Context, plan_name: str) -> str:
     """
     client = ctx.request_context.lifespan_context.jotform_client
     return await _execute_jotform_request(client.get_plan, plan_name)
+
+# --- Custom Search Tool ---
+@mcp.tool()
+async def search_submissions_by_date(
+    ctx: Context,
+    form_ids: Optional[List[str]] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    period: Optional[str] = None,
+    limit_per_form: Optional[int] = 1000 # Jotform API limit per request
+) -> str:
+    """Search submissions by date range or period across specified forms or all enabled forms.
+
+    Provide EITHER 'period' OR ('start_date' and/or 'end_date').
+
+    Args:
+        ctx: The MCP server context.
+        form_ids (Optional[List[str]]): List of form IDs to search. If None or empty, searches all *enabled* forms.
+        start_date (Optional[str]): Start date in YYYY-MM-DD format (inclusive). Use with end_date.
+        end_date (Optional[str]): End date in YYYY-MM-DD format (inclusive). Use with start_date.
+        period (Optional[str]): Relative period. Options: "last_7_days", "last_30_days",
+                                "current_month", "last_month", "current_accounting_month",
+                                "last_accounting_month". Cannot be used with start_date/end_date.
+        limit_per_form (Optional[int]): Max submissions per form request (default/max 1000).
+
+    Returns:
+        A JSON string containing a list of submissions aggregated from all searched forms,
+        or an error message.
+    """
+    client = ctx.request_context.lifespan_context.jotform_client
+    target_form_ids = form_ids if form_ids else []
+
+    # Validate date/period parameters
+    if period and (start_date or end_date):
+        return json.dumps({"error": "Cannot use 'period' together with 'start_date' or 'end_date'."}, indent=2)
+    if not period and not start_date and not end_date:
+         return json.dumps({"error": "Please provide either 'period' or at least one of 'start_date'/'end_date'."}, indent=2)
+
+    try:
+        # Determine date range filter
+        start_filter, end_filter = _calculate_date_range(period, start_date, end_date)
+        date_filter = {}
+        if start_filter:
+            date_filter["created_at:gt"] = start_filter
+        if end_filter:
+            date_filter["created_at:lt"] = end_filter
+
+        if not date_filter:
+             return json.dumps({"error": "Could not determine a valid date range for filtering."}, indent=2)
+
+        # Fetch target form IDs if not provided
+        if not target_form_ids:
+            logging.info("No form_ids provided, fetching all enabled forms.")
+            try:
+                # Fetch all forms first (might need pagination in future for >1000 forms)
+                all_forms_result = await asyncio.to_thread(client.get_forms, limit=1000) # Get up to 1000 forms
+                if isinstance(all_forms_result, list):
+                     target_form_ids = [form['id'] for form in all_forms_result if form.get('status') == 'ENABLED']
+                     logging.info(f"Found {len(target_form_ids)} enabled forms.")
+                else:
+                     # Handle potential error format from _execute_jotform_request if get_forms failed
+                     if isinstance(all_forms_result, str):
+                          try:
+                               parsed_error = json.loads(all_forms_result)
+                               if 'error' in parsed_error:
+                                    return json.dumps({"error": f"Failed to fetch forms: {parsed_error['error']}"}, indent=2)
+                          except json.JSONDecodeError:
+                               pass # Fall through to generic error
+                     return json.dumps({"error": "Failed to fetch forms list. Unexpected result format."}, indent=2)
+
+            except Exception as e:
+                logging.error(f"Error fetching forms list: {e}", exc_info=True)
+                return json.dumps({"error": f"Error fetching forms list: {str(e)}"}, indent=2)
+
+        if not target_form_ids:
+            return json.dumps({"message": "No specific form IDs provided and no enabled forms found.", "submissions": []}, indent=2)
+
+        # Fetch submissions for each form concurrently
+        tasks = []
+        for form_id in target_form_ids:
+            # Note: The client's get_form_submissions handles creating the final params dict
+            tasks.append(
+                asyncio.to_thread(
+                    client.get_form_submissions,
+                    formID=form_id,
+                    limit=limit_per_form,
+                    filterArray=date_filter, # Pass the date filter here
+                    order_by="created_at" # Order by date is usually helpful
+                )
+            )
+
+        logging.info(f"Fetching submissions for {len(tasks)} forms with date filter: {date_filter}")
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Aggregate results and handle errors
+        all_submissions = []
+        errors = []
+        for i, result in enumerate(results):
+            form_id = target_form_ids[i]
+            if isinstance(result, Exception):
+                error_msg = f"Error fetching submissions for form {form_id}: {str(result)}"
+                logging.error(error_msg, exc_info=result)
+                errors.append({"form_id": form_id, "error": str(result)})
+            elif isinstance(result, list):
+                # Add form_id to each submission for context
+                for sub in result:
+                    if isinstance(sub, dict):
+                        sub['retrieved_from_form_id'] = form_id
+                all_submissions.extend(result)
+            else:
+                # Handle unexpected non-list, non-exception results if necessary
+                 logging.warning(f"Unexpected result type for form {form_id}: {type(result)}")
+                 errors.append({"form_id": form_id, "error": "Unexpected result type from API."})
+
+
+        final_result = {
+            "submissions": all_submissions,
+            "search_details": {
+                 "forms_searched": target_form_ids,
+                 "date_filter_used": date_filter,
+                 "period_parameter": period,
+                 "start_date_parameter": start_date,
+                 "end_date_parameter": end_date,
+                 "limit_per_form": limit_per_form,
+            }
+        }
+        if errors:
+            final_result["errors"] = errors
+
+        return json.dumps(final_result, indent=2)
+
+    except ValueError as ve: # Catch specific errors like invalid date format/period
+         logging.error(f"Value error in search_submissions_by_date: {ve}", exc_info=True)
+         return json.dumps({"error": str(ve)}, indent=2)
+    except Exception as e:
+        logging.error(f"Unexpected error in search_submissions_by_date: {e}", exc_info=True)
+        return json.dumps({"error": f"An unexpected error occurred: {str(e)}"}, indent=2)
 
 
 async def main():

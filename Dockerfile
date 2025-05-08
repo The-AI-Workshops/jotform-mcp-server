@@ -11,15 +11,23 @@ WORKDIR /app
 # Install system dependencies if needed (e.g., for certain Python packages)
 # RUN apt-get update && apt-get install -y --no-install-recommends some-package && rm -rf /var/lib/apt/lists/*
 
-# Copy the requirements file into the container
-COPY requirements.txt .
+# Install uv
+RUN pip install --no-cache-dir --upgrade pip uv
 
-# Install any needed packages specified in requirements.txt
-# Activate venv is not needed inside Docker build usually, install globally in the image context
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+# Copy project definition and lock file
+COPY pyproject.toml uv.lock* ./
+
+# Install dependencies using uv
+# This leverages the lock file for reproducible installs
+# It creates a virtual environment within the image for isolation
+RUN uv venv /opt/venv && \
+    uv pip sync --python /opt/venv/bin/python --frozen uv.lock
+
+# Activate the virtual environment for subsequent commands
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy the rest of the application code into the container
+# Copy application code after installing dependencies to leverage Docker cache
 COPY . .
 
 # Make port 8067 available to the world outside this container

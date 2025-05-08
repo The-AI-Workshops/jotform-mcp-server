@@ -11,8 +11,8 @@ JotForm API requires an API key for all user-related calls. You can create your 
 **1. Clone the Repository:**
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/jotform-api-python.git # Replace YOUR_USERNAME
-cd jotform-api-python
+git clone https://github.com/The-AI-Workshops/jotform-mcp-server.git
+cd jotform-mcp-server
 ```
 
 **2. Create Virtual Environment (Recommended):**
@@ -24,8 +24,13 @@ source venv/bin/activate  # On Windows use `venv\Scripts\activate`
 
 **3. Install Dependencies:**
 
+This project uses `uv` for dependency management. If you don't have `uv`, install it first (within or outside the venv):
 ```bash
-pip install -r requirements.txt
+pip install uv
+```
+Then, install dependencies using the lock file:
+```bash
+uv pip sync uv.lock
 ```
 
 **4. Configure API Key:**
@@ -43,6 +48,9 @@ MCP_TRANSPORT="sse"
 JOTFORM_BASE_URL="https://api.jotform.com/"
 JOTFORM_OUTPUT_TYPE="json"
 JOTFORM_DEBUG_MODE="False"
+
+# Custom Search Settings
+ACCOUNTING_MONTH_START_DAY="1" # Day of the month the accounting period starts (e.g., 1, 15)
 ```
 
 **5. Run the Server:**
@@ -97,6 +105,109 @@ To remove the container:
 ```bash
 docker rm jotform-server
 ```
+
+### Integration with MCP Clients
+
+You can connect to this server using any MCP-compatible client (like Windsurf, Claude Desktop, n8n, etc.). Here are example configurations for different transport methods:
+
+**SSE Configuration**
+
+If you run the server directly (`python jotform_mcp_server.py`) or using Docker with port mapping (as shown above), you can connect via SSE. Ensure `TRANSPORT=sse` is set in your `.env` file or passed to the Docker container.
+
+*Standard MCP Configuration:*
+```json
+{
+  "mcpServers": {
+    "jotform": {
+      "transport": "sse",
+      "url": "http://localhost:8067/sse"
+    }
+  }
+}
+```
+
+*Windsurf Configuration:*
+```json
+{
+  "mcpServers": {
+    "jotform": {
+      "transport": "sse",
+      "serverUrl": "http://localhost:8067/sse"
+    }
+  }
+}
+```
+*(Note: If connecting from another Docker container, like n8n, replace `localhost` with `host.docker.internal`)*
+
+**Python with Stdio Configuration**
+
+This allows the MCP client to manage the server process directly using your local Python environment. Replace `your/path/to/` with the actual absolute path to the project directory.
+
+```json
+{
+  "mcpServers": {
+    "jotform": {
+      // Ensure this points to the python executable within the venv created by uv/pip
+      "command": "your/path/to/jotform-mcp-server/venv/bin/python", // Use venv\Scripts\python.exe on Windows
+      "args": ["your/path/to/jotform-mcp-server/jotform_mcp_server.py"],
+      "env": {
+        "TRANSPORT": "stdio",
+        "JOTFORM_API_KEY": "YOUR_ACTUAL_JOTFORM_API_KEY",
+        // Optional: Override other .env settings if needed
+        "JOTFORM_BASE_URL": "https://api.jotform.com/",
+        "JOTFORM_OUTPUT_TYPE": "json",
+        "JOTFORM_DEBUG_MODE": "False"
+      }
+    }
+  }
+}
+```
+
+**Docker with Stdio Configuration**
+
+This allows the MCP client to manage the server process running inside a Docker container. Ensure you have built the image (`docker build -t jotform-mcp-server .`).
+
+```json
+{
+  "mcpServers": {
+    "jotform": {
+      "command": "docker",
+      "args": ["run", "--rm", "-i",
+               "-e", "TRANSPORT=stdio",
+               "-e", "JOTFORM_API_KEY", // Will be inherited from the 'env' section below
+               "-e", "JOTFORM_BASE_URL",
+               "-e", "JOTFORM_OUTPUT_TYPE",
+               "-e", "JOTFORM_DEBUG_MODE",
+               "jotform-mcp-server:latest" // Use the image tag you built
+              ],
+      "env": {
+        "TRANSPORT": "stdio", // Required by the server script
+        "JOTFORM_API_KEY": "YOUR_ACTUAL_JOTFORM_API_KEY",
+        // Optional: Override other defaults if needed
+        "JOTFORM_BASE_URL": "https://api.jotform.com/",
+        "JOTFORM_OUTPUT_TYPE": "json",
+        "JOTFORM_DEBUG_MODE": "False"
+      }
+    }
+  }
+}
+```
+
+### Available Tools
+
+This server exposes all public methods of the original `JotformAPIClient` as MCP tools. Tool names generally follow the client method names (e.g., `get_user`, `get_forms`, `create_form_submission`). Refer to the [JotForm API documentation](https://api.jotform.com/docs/) for details on parameters and return values for the underlying API calls.
+
+**Custom Tools:**
+
+*   **`search_submissions_by_date`**:
+    *   Searches submissions across specified forms (or all enabled forms if none specified) based on a date range or a predefined period.
+    *   **Arguments:**
+        *   `form_ids` (Optional `List[str]`): List of form IDs. Defaults to all enabled forms.
+        *   `start_date` (Optional `str`): Start date "YYYY-MM-DD" (inclusive). Use with `end_date`.
+        *   `end_date` (Optional `str`): End date "YYYY-MM-DD" (inclusive). Use with `start_date`.
+        *   `period` (Optional `str`): Relative period ("last_7_days", "last_30_days", "current_month", "last_month", "current_accounting_month", "last_accounting_month"). Cannot be used with specific dates. Uses `ACCOUNTING_MONTH_START_DAY` from `.env` for accounting periods.
+        *   `limit_per_form` (Optional `int`): Max submissions per form (default 1000).
+    *   **Returns:** JSON string with a list of submissions and search details.
 
 ### Original Python Client Usage
 
