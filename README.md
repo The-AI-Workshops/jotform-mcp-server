@@ -2,11 +2,23 @@
 
 This repository contains the Python client for the [JotForm API](https://api.jotform.com/docs/) and an MCP (Model Context Protocol) server built using this client. The MCP server allows interaction with the Jotform API through standardized tools.
 
+### Installation via Smithery (Recommended for MCP Clients)
+
+This server is available on Smithery. You can easily install and configure it within compatible MCP clients (like Windsurf):
+
+1.  **Search:** In your MCP client's server management interface, search for servers.
+2.  **Find:** Look for **`JotForm API Server`** or use the ID **`@The-AI-Workshops/jotform-mcp-server`**.
+3.  **Install:** Select the server and click "Install".
+4.  **Configure:** After installation, you will be prompted to configure the required environment variables. The most important one is:
+    *   `JOTFORM_API_KEY`: Your Jotform API key.
+
+Smithery handles the underlying setup (Docker or Python environment) based on the server's configuration.
+
 ### Authentication
 
-JotForm API requires an API key for all user-related calls. You can create your API Keys at the [API section](https://www.jotform.com/myaccount/api) of your JotForm account settings. This key is needed to run the MCP server.
+JotForm API requires an API key for all user-related calls. You can create your API Keys at the [API section](https://www.jotform.com/myaccount/api) of your JotForm account settings. This key is needed to run the MCP server, whether installed manually or via Smithery.
 
-### Setup and Running the MCP Server
+### Manual Setup and Running (for Development or Non-Smithery Use)
 
 **1. Clone the Repository:**
 
