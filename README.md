@@ -229,10 +229,71 @@ pip install -r requirements.txt && python jotform_mcp_server.py
 
 ### Available Tools
 
-This server exposes all public methods of the original `JotformAPIClient` as MCP tools. Tool names generally follow the client method names (e.g., `get_user`, `get_forms`, `create_form_submission`). Refer to the [JotForm API documentation](https://api.jotform.com/docs/) for details on parameters and return values for the underlying API calls.
+This server exposes the following tools, derived from the `JotformAPIClient` methods and custom additions. Refer to the [JotForm API documentation](https://api.jotform.com/docs/) for details on parameters and return values for the underlying API calls, unless otherwise specified for custom tools.
+
+**User Tools:**
+*   `get_user`: Get user account details.
+*   `get_usage`: Get monthly usage stats (submissions, uploads).
+*   `get_submissions`: Get a list of submissions for the account (paginated, filterable).
+*   `get_subusers`: Get a list of sub users.
+*   `get_settings`: Get user's settings (timezone, language).
+*   `update_settings`: Update user's settings.
+*   `get_history`: Get user activity log.
+*   `register_user`: Register a new user (use with caution).
+*   `login_user`: Login user (use with caution).
+*   `logout_user`: Logout user.
+
+**Form Tools:**
+*   `get_forms`: Get a list of forms for the account (paginated, filterable).
+*   `get_form`: Get basic information about a specific form.
+*   `get_form_questions`: Get a list of all questions on a form.
+*   `get_form_question`: Get details about a specific question.
+*   `create_form`: Create a new form.
+*   `create_forms`: Create multiple new forms (PUT).
+*   `delete_form`: Delete a specific form.
+*   `clone_form`: Clone a single form.
+*   `delete_form_question`: Delete a single form question.
+*   `create_form_question`: Add a new question to a form.
+*   `create_form_questions`: Add multiple new questions to a form (PUT).
+*   `edit_form_question`: Add or edit properties of a single question.
+*   `get_form_properties`: Get all properties of a form.
+*   `get_form_property`: Get a specific property of a form.
+*   `set_form_properties`: Add or edit properties of a form (POST).
+*   `set_multiple_form_properties`: Add or edit multiple properties of a form (PUT).
+*   `get_form_files`: List files uploaded to a form.
+*   `get_form_webhooks`: Get list of webhooks for a form.
+*   `create_form_webhook`: Add a new webhook to a form.
+*   `delete_form_webhook`: Delete a specific webhook from a form.
+*   `get_form_reports`: Get all reports associated with a form.
+*   `create_report`: Create a new report for a form.
+
+**Submission Tools:**
+*   `get_form_submissions`: List submissions for a specific form (paginated, filterable).
+*   `create_form_submission`: Submit data to a specific form.
+*   `create_form_submissions`: Submit multiple data entries to a form (PUT).
+*   `get_submission`: Get data for a specific submission.
+*   `delete_submission`: Delete a single submission.
+*   `edit_submission`: Edit a single submission.
+
+**Folder Tools:**
+*   `get_folders`: Get a list of form folders.
+*   `get_folder`: Get details of a specific folder.
+*   `create_folder`: Create a new folder.
+*   `delete_folder`: Delete a specific folder and its subfolders.
+*   `update_folder`: Update properties of a specific folder.
+*   `add_forms_to_folder`: Add multiple forms to a folder.
+*   `add_form_to_folder`: Add a specific form to a folder.
+
+**Report Tools:**
+*   `get_reports`: List all reports for the account.
+*   `get_report`: Get details of a specific report.
+*   `delete_report`: Delete a specific report.
+*   *(Note: `create_report` is listed under Form Tools)*
+
+**System Tools:**
+*   `get_plan`: Get details of a specific Jotform plan (e.g., FREE, PREMIUM).
 
 **Custom Tools:**
-
 *   **`search_submissions_by_date`**:
     *   Searches submissions across specified forms (or all enabled forms if none specified) based on a date range or a predefined period.
     *   **Arguments:**
