@@ -239,7 +239,7 @@ This server exposes all public methods of the original `JotformAPIClient` as MCP
         *   `form_ids` (Optional `List[str]`): List of form IDs. Defaults to all enabled forms.
         *   `start_date` (Optional `str`): Start date "YYYY-MM-DD" (inclusive). Use with `end_date`.
         *   `end_date` (Optional `str`): End date "YYYY-MM-DD" (inclusive). Use with `start_date`.
-        *   `period` (Optional `str`): Relative period ("last_7_days", "last_30_days", "current_month", "last_month", "current_accounting_month", "last_accounting_month"). Cannot be used with specific dates. Uses `ACCOUNTING_MONTH_START_DAY` from `.env` for accounting periods.
+        *   `period` (Optional `str`): Relative period ("today", "last_7_days", "last_30_days", "current_month", "last_month", "current_accounting_month", "last_accounting_month"). Cannot be used with specific dates. Uses `ACCOUNTING_MONTH_START_DAY` from `.env` for accounting periods.
         *   `limit_per_form` (Optional `int`): Max submissions per form (default 1000).
     *   **Returns:** JSON string with a list of submissions and search details.
 

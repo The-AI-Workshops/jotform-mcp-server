@@ -114,7 +114,10 @@ def _calculate_date_range(period: Optional[str], start_date_str: Optional[str], 
              acc_start_day = 1
              logging.warning("ACCOUNTING_MONTH_START_DAY is invalid or > 28, defaulting to 1.")
 
-        if period == "last_7_days":
+        if period == "today":
+            start_date = today
+            end_date = today
+        elif period == "last_7_days":
             start_date = today - timedelta(days=7)
             end_date = today
         elif period == "last_30_days":
@@ -927,7 +930,7 @@ async def search_submissions_by_date(
         form_ids (Optional[List[str]]): List of form IDs to search. If None or empty, searches all *enabled* forms.
         start_date (Optional[str]): Start date in YYYY-MM-DD format (inclusive). Use with end_date.
         end_date (Optional[str]): End date in YYYY-MM-DD format (inclusive). Use with start_date.
-        period (Optional[str]): Relative period. Options: "last_7_days", "last_30_days",
+        period (Optional[str]): Relative period. Options: "today", "last_7_days", "last_30_days",
                                 "current_month", "last_month", "current_accounting_month",
                                 "last_accounting_month". Cannot be used with start_date/end_date.
         limit_per_form (Optional[int]): Max submissions per form request (default/max 1000).
