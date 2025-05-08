@@ -1,128 +1,103 @@
-jotform-api-python 
-===============
-[JotForm API](https://api.jotform.com/docs/) - Python Client
+# JotForm API - Python Client & MCP Server
 
-
-### Installation
-
-Install via git clone:
-
-        $ git clone https://github.com/jotform/jotform-api-python.git
-        $ cd jotform-api-python
-        
-Install via pip (latest version)
-
-        $ pip install git+https://github.com/jotform/jotform-api-python.git
-
-### Documentation
-
-You can find the docs for the API of this client at [https://api.jotform.com/docs/](https://api.jotform.com/docs)
+This repository contains the Python client for the [JotForm API](https://api.jotform.com/docs/) and an MCP (Model Context Protocol) server built using this client. The MCP server allows interaction with the Jotform API through standardized tools.
 
 ### Authentication
 
-JotForm API requires API key for all user related calls. You can create your API Keys at  [API section](https://www.jotform.com/myaccount/api) of My Account page.
+JotForm API requires an API key for all user-related calls. You can create your API Keys at the [API section](https://www.jotform.com/myaccount/api) of your JotForm account settings. This key is needed to run the MCP server.
 
-### Examples
+### Setup and Running the MCP Server
 
-Print all forms of the user
+**1. Clone the Repository:**
 
-```python
-from jotform import *
+```bash
+git clone https://github.com/YOUR_USERNAME/jotform-api-python.git # Replace YOUR_USERNAME
+cd jotform-api-python
+```
 
-def main():
+**2. Create Virtual Environment (Recommended):**
 
-    jotformAPIClient = JotformAPIClient('YOUR API KEY')
+```bash
+python3 -m venv venv
+source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+```
 
-    forms = jotformAPIClient.get_forms()
+**3. Install Dependencies:**
 
-    for form in forms:
-    	print(form["title"])
+```bash
+pip install -r requirements.txt
+```
 
-if __name__ == "__main__":
-    main()
-```  
+**4. Configure API Key:**
 
-Get submissions of the latest form
+*   Rename the `.env.example` file to `.env`.
+*   Open the `.env` file and replace `"YOUR_JOTFORM_API_KEY_HERE"` with your actual Jotform API key.
+*   You can also adjust other settings like `MCP_PORT` or `JOTFORM_BASE_URL` if needed.
 
-```python
-from jotform import *
+```dotenv
+# .env
+JOTFORM_API_KEY="YOUR_ACTUAL_JOTFORM_API_KEY"
+MCP_HOST="0.0.0.0"
+MCP_PORT="8067"
+MCP_TRANSPORT="sse"
+JOTFORM_BASE_URL="https://api.jotform.com/"
+JOTFORM_OUTPUT_TYPE="json"
+JOTFORM_DEBUG_MODE="False"
+```
 
-def main():
+**5. Run the Server:**
 
-    jotformAPIClient = JotformAPIClient('YOUR API KEY')
+Make sure your virtual environment is activated.
 
-    forms = jotformAPIClient.get_forms(None, 1, None, None)
+```bash
+python jotform_mcp_server.py
+```
 
-    latestForm = forms[0]
+The server will start, typically listening on `http://0.0.0.0:8067`. You can then connect to it using an MCP client. All public methods of the `JotformAPIClient` are exposed as tools.
 
-    latestFormID = latestForm["id"]
+### Running with Docker
 
-    submissions = jotformAPIClient.get_form_submissions(latestFormID)
+A `Dockerfile` is provided for containerizing the MCP server.
 
-    print(submissions)
+**1. Build the Docker Image:**
 
-if __name__ == "__main__":
-    main()
-``` 
+Make sure you are in the project's root directory (where the `Dockerfile` is located).
 
-Get latest 100 submissions ordered by creation date
+```bash
+docker build -t jotform-mcp-server .
+```
 
-```python
-from jotform import *
+**2. Run the Docker Container:**
 
-def main():
+You **must** provide your Jotform API key as an environment variable when running the container.
 
-    jotformAPIClient = JotformAPIClient('YOUR API KEY')
+```bash
+docker run -d -p 8067:8067 -e JOTFORM_API_KEY="YOUR_ACTUAL_JOTFORM_API_KEY" --name jotform-server jotform-mcp-server
+```
 
-    submissions = jotformAPIClient.get_submissions(0, 100, None, "created_at")
+*   `-d`: Run the container in detached mode (in the background).
+*   `-p 8067:8067`: Map port 8067 on your host to port 8067 in the container.
+*   `-e JOTFORM_API_KEY="..."`: **Crucially**, pass your API key here.
+*   `--name jotform-server`: Assign a name to the container for easier management.
+*   `jotform-mcp-server`: The name of the image you built.
 
-    print(submissions)
+The MCP server will be running inside the container and accessible on port 8067 of your host machine.
 
-if __name__ == "__main__":
-    main()
-``` 
+To view logs:
+```bash
+docker logs jotform-server
+```
 
-Submission and form filter examples
+To stop the container:
+```bash
+docker stop jotform-server
+```
 
-```python
-from jotform import *
+To remove the container:
+```bash
+docker rm jotform-server
+```
 
-def main():
+### Original Python Client Usage
 
-    jotformAPIClient = JotformAPIClient('YOUR API KEY')
-
-    submission_filter = {"id:gt":"FORM ID", "created_at": "DATE"}
-
-    submission = jotformAPIClient.get_submissions(0, 0, submission_filter, "") 
-    print(submission)
-
-    form_filter = {"id:gt": "FORM ID"}
-
-    forms = jotformAPIClient.get_forms(0,0, form_filter, "")
-    print(forms)
-
-if __name__ == "__main__":
-    main()
-``` 
-
-Delete last 50 submissions
-
-```python
-from jotform import *
-
-def main():
-
-    jotformAPIClient = JotformAPIClient('YOUR API KEY')
-
-    submissions = jotformAPIClient.get_submissions(0, 50, None, None)
-
-    for submission in submissions:
-        result = jotformAPIClient.delete_submission(submission["id"])
-        print(result)
-
-if __name__ == "__main__":
-    main()
-``` 
-
-First the _JotformAPIClient_ class is included from the _jotform-api-python/jotform.py_ file. This class provides access to JotForm's API. You have to create an API client instance with your API key. 
-In case of an exception (wrong authentication etc.), you can catch it or let it fail with a fatal error.
+The `jotform.py` file still contains the `JotformAPIClient` class, which provides direct access to JotForm's API methods within Python scripts. You can import and use this class directly if needed, though the primary way to interact with this project is now intended to be through the MCP server. Refer to the original README history or the [JotForm API documentation](https://api.jotform.com/docs/) for examples of direct client usage.

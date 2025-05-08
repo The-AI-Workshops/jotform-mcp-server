@@ -1,0 +1,3 @@
+python-dotenv
+fastmcp>=2.2.10
+# Add other specific dependencies from jotform.py if any (currently seems to use standard libs)
