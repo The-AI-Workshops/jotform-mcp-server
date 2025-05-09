@@ -1,0 +1,61 @@
+# Smithery configuration file: https://smithery.ai/docs/build/project-config
+
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    required:
+      - apiKey
+    properties:
+      apiKey:
+        type: string
+        description: Your JotForm API Key (from https://www.jotform.com/myaccount/api).
+      mcpHost:
+        type: string
+        default: 0.0.0.0
+        description: Host interface for the MCP server to bind to.
+      mcpPort:
+        type: string
+        default: "8067"
+        description: Port for the MCP server to listen on.
+      transport:
+        type: string
+        default: sse
+        description: Transport protocol for MCP (stdio or sse).
+      baseUrl:
+        type: string
+        default: https://api.jotform.com/
+        description: Base URL for JotForm API endpoints.
+      outputType:
+        type: string
+        default: json
+        description: Output type for JotForm API (json or xml).
+      debugMode:
+        type: string
+        default: "False"
+        description: Enable debug logging (True or False).
+  commandFunction:
+    # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
+    |-
+    (config) => ({
+      command: 'python',
+      args: ['jotform_mcp_server.py'],
+      env: {
+        JOTFORM_API_KEY: config.apiKey,
+        MCP_HOST: config.mcpHost,
+        MCP_PORT: config.mcpPort,
+        MCP_TRANSPORT: config.transport,
+        JOTFORM_BASE_URL: config.baseUrl,
+        JOTFORM_OUTPUT_TYPE: config.outputType,
+        JOTFORM_DEBUG_MODE: config.debugMode
+      }
+    })
+  exampleConfig:
+    apiKey: ABCDEF1234567890abcdef
+    mcpHost: 0.0.0.0
+    mcpPort: "8067"
+    transport: stdio
+    baseUrl: https://api.jotform.com/
+    outputType: json
+    debugMode: "False"
