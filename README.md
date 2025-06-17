@@ -1,4 +1,5 @@
 [![MseeP.ai Security Assessment Badge](https://mseep.net/pr/the-ai-workshops-jotform-mcp-server-badge.png)](https://mseep.ai/app/the-ai-workshops-jotform-mcp-server)
+[![Verified on MseeP](https://mseep.ai/badge.svg)](https://mseep.ai/app/ee46503f-99e6-49d7-9427-9703a1672779)
 
 # JotForm API - Python Client & MCP Server
 
