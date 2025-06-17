@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/the-ai-workshops-jotform-mcp-server-badge.png)](https://mseep.ai/app/the-ai-workshops-jotform-mcp-server)
+
 # JotForm API - Python Client & MCP Server
 
 This repository contains the Python client for the [JotForm API](https://api.jotform.com/docs/) and an MCP (Model Context Protocol) server built using this client. The MCP server allows interaction with the Jotform API through standardized tools.
