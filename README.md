@@ -19,6 +19,114 @@ This server is available on Smithery. You can easily install and configure it wi
 
 Smithery handles the underlying setup (Docker or Python environment) based on the server's configuration.
 
+### Configuration for Claude Desktop and Similar MCP Clients
+
+For Claude Desktop and other MCP clients that use stdio transport, you can configure the server in several ways:
+
+#### Option 1: Smithery CLI (Windows/Cross-platform)
+
+```json
+{
+  "mcpServers": {
+    "jotform-mcp-server": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@The-AI-Workshops/jotform-mcp-server",
+        "--key",
+        "{\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{},\"clientInfo\":{\"name\":\"claude-ai\",\"version\":\"0.1.0\"}},\"jsonrpc\":\"2.0\",\"id\":0}",
+        "--config",
+        "\"{\\\"apiKey\\\":\\\"YOUR_JOTFORM_API_KEY\\\",\\\"baseUrl\\\":\\\"https://api.jotform.com/\\\",\\\"mcpHost\\\":\\\"0.0.0.0\\\",\\\"mcpPort\\\":\\\"8067\\\",\\\"debugMode\\\":\\\"False\\\",\\\"transport\\\":\\\"stdio\\\",\\\"outputType\\\":\\\"json\\\"}\""
+      ]
+    }
+  }
+}
+```
+
+#### Option 2: Direct Python Execution
+
+**Linux/macOS:**
+```json
+{
+  "mcpServers": {
+    "jotform": {
+      "command": "python",
+      "args": ["/path/to/jotform-mcp-server/jotform_mcp_server.py"],
+      "env": {
+        "JOTFORM_API_KEY": "YOUR_JOTFORM_API_KEY"
+      }
+    }
+  }
+}
+```
+
+**Windows:**
+```json
+{
+  "mcpServers": {
+    "jotform": {
+      "command": "python",
+      "args": ["C:\\path\\to\\jotform-mcp-server\\jotform_mcp_server.py"],
+      "env": {
+        "JOTFORM_API_KEY": "YOUR_JOTFORM_API_KEY"
+      }
+    }
+  }
+}
+```
+
+#### Option 3: Using Virtual Environment
+
+**Linux/macOS:**
+```json
+{
+  "mcpServers": {
+    "jotform": {
+      "command": "/path/to/jotform-mcp-server/venv/bin/python",
+      "args": ["/path/to/jotform-mcp-server/jotform_mcp_server.py"],
+      "env": {
+        "JOTFORM_API_KEY": "YOUR_JOTFORM_API_KEY"
+      }
+    }
+  }
+}
+```
+
+**Windows:**
+```json
+{
+  "mcpServers": {
+    "jotform": {
+      "command": "C:\\path\\to\\jotform-mcp-server\\venv\\Scripts\\python.exe",
+      "args": ["C:\\path\\to\\jotform-mcp-server\\jotform_mcp_server.py"],
+      "env": {
+        "JOTFORM_API_KEY": "YOUR_JOTFORM_API_KEY"
+      }
+    }
+  }
+}
+```
+
+#### Option 4: Using uv (Recommended for Python environments)
+
+```json
+{
+  "mcpServers": {
+    "jotform": {
+      "command": "uv",
+      "args": ["--directory", "/path/to/jotform-mcp-server", "run", "jotform_mcp_server.py"],
+      "env": {
+        "JOTFORM_API_KEY": "YOUR_JOTFORM_API_KEY"
+      }
+    }
+  }
+}
+```
+
 ### Authentication
 
 JotForm API requires an API key for all user-related calls. You can create your API Keys at the [API section](https://www.jotform.com/myaccount/api) of your JotForm account settings. This key is needed to run the MCP server, whether installed manually or via Smithery.
